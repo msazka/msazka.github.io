@@ -1,0 +1,193 @@
+<!doctype html>
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+<div class="table-responsive">
+    <h1></h1>
+  <table class="table">
+    <thead class="thead-light">
+    <tr>      
+      <th scope="col">Name</th>
+      <th scope="col">Email</th>
+      <th scope="col">Phone</th>
+    </tr>
+  </thead>
+  <tbody id="user-table-body"></tbody>
+  </table>
+</div>
+<script>
+   
+$(()=> {
+    getUsers();
+    // var button = document.querySelector('.link-primary');
+    // button.onclick = function() {
+    //    console.log("anchor clicked", this);
+    // }
+    //   $('#user-name').click(()=> {
+    //     console.log("anchor clicked");
+    // });
+})
+
+function addUser(user) {
+    $("#user-table-body").append(`<tr><td><a class="link-primary" 
+      data-id=${user.id} id="user-name" name="user-name" 
+      onclick='return getUserDetail(this)'">${user.name}</a></td><td>${user.email}
+        </td><td>${user.phone}</td></tr>
+        <tr tr-data-id=${user.id} id="lovely-user-detail-holder" style="display:none">
+          <td td-data-id=${user.id} colspan= 3 id="lovely-user-detail"></td></tr>`);
+}
+
+function hideAllDetails(fn) {
+  document.querySelectorAll('#lovely-user-detail-holder').forEach(function(el) {
+    el.style.display = 'none';
+  });
+}
+
+function addUserDetail(userDetail, element) {
+  hideAllDetails();
+  //create table progmattically   
+  let dataId =  element.getAttribute('data-id');
+  let lovelyUserTable = document.createElement('table');
+  lovelyUserTable.setAttribute('class', 'table');
+  lovelyUserTable.setAttribute('id', 'lovely-user-detail-table');
+  lovelyUserTable.setAttribute('table-data-id', dataId);
+  
+  let thead = document.createElement('thead');
+  let tbody = document.createElement('tbody');
+
+  lovelyUserTable.appendChild(thead);
+  lovelyUserTable.appendChild(tbody);
+
+  // Adding the entire table to the body tag
+  
+  let lovelyUserTd =  document.querySelector('td[td-data-id="'+dataId+'"]');
+  lovelyUserTd.appendChild(lovelyUserTable);
+
+  let table = document.querySelector('table[table-data-id="'+dataId+'"]');    
+  var userDetail = JSON.parse(userDetail);
+  /*Generate table from data*/
+  generateTableHead(table, userDetail);
+  generateTable(table, userDetail);
+
+   let lovelyDetailTable =  document.querySelector('tr[tr-data-id="'+dataId+'"]');
+   lovelyDetailTable.setAttribute("style", "display:inline");
+}
+
+
+function generateTableHead(table, data) {
+  let thead = table.createTHead();
+  let row = thead.insertRow();
+  for (let key of Object.keys(data)) {
+    let th = document.createElement("th");
+    let text = document.createTextNode(key);
+    th.appendChild(text);
+    row.appendChild(th);
+  }
+}
+
+function getFormattedValues(data) { 
+  let formatted = "";
+  for (let element of Object.keys(data)) {
+    console.log(data[element]);
+    if (element != "geo") {
+      formatted = formatted +" "+ data[element];
+    }
+  } 
+  console.log(formatted);
+  return formatted;
+}
+
+function generateTable(table, data) {
+  //one row needed
+  let row = table.insertRow();
+  for (let element of Object.keys(data)) {
+    let elementData = data[element];
+    if (element = "address"){
+      //get formatted address
+      console.log("address" ,data[element]);
+     let elementData = getFormattedValues(data[element]);
+    }
+    if (element = "company"){
+      let elementData = getFormattedValues(data[element]);
+    }
+    let cell = row.insertCell();
+    let text = document.createTextNode(elementData);
+    cell.appendChild(text);
+  }
+}
+
+function getUserDetail(e) {
+  let userId = e.getAttribute("data-id");
+  const url = "http://localhost/wp-learning/dev/wp-json/InpsydeLovelyUsers/v1/lovely-user/"+userId;
+  try {
+    fetch(url)
+  .then(
+    (response) => response.json()
+    )
+  .then(
+    (jsonObj) => addUserDetail(jsonObj,e)
+    );
+  } catch (error) {
+    console.error(error);
+  }
+ 
+
+    
+    //Check non empty userid before calling endpoint
+    // $.get(url,(data)=> {
+    //     try {
+    //       var obj = JSON.parse(data);
+    //       console.log(obj);
+    //       addUserDetail(obj);
+    //     } catch (ex) {
+    //       console.error(ex);
+    //     }
+    // });
+}
+
+function getUsers() {
+   const url = "http://localhost/wp-learning/dev/wp-json/InpsydeLovelyUsers/v1/lovely-user";
+    $.get(url,(data)=> {
+        try {
+          var obj = JSON.parse(data);         
+          obj.forEach(addUser);
+        } catch (ex) {
+          console.error(ex);
+        }
+    });   
+}
+
+</script>
+  
+<script>
+      if ('serviceWorker' in navigator) {
+        console.log(navigator);
+        navigator.serviceWorker.register('./service-worker.js', {scope: './'}).then(function() {
+          // Registration was successful. Now, check to see whether the service worker is controlling the page.
+          if (navigator.serviceWorker.controller) {
+             console.log("If controller found");
+            // If .controller is set, then this page is being actively controlled by the service worker.
+            document.querySelector('#status').textContent =
+              'This funky font has been cached by the controlling service worker.';
+          } else {
+            // If .controller isn't set, then prompt the user to reload the page so that the service worker can take
+            // control. Until that happens, the service worker's fetch handler won't be used.
+            document.querySelector('#status').textContent =
+              'Please click on link to load user data from cache.';
+          }
+        }).catch(function(error) {
+          // Something went wrong during registration. The service-worker.js file
+          // might be unavailable or contain a syntax error.
+          document.querySelector('#status').textContent = error;
+        });
+      } else {
+        // The current browser doesn't support service workers.
+        var aElement = document.createElement('a');
+        aElement.href = 'http://www.chromium.org/blink/serviceworker/service-worker-faq';
+        aElement.textContent = 'Service workers are not supported in the current browser.';
+        document.querySelector('#status').appendChild(aElement);
+      }
+    </script>
+     <div class="output">
+      <div id="status"></div>
+    </div>
